@@ -128,13 +128,13 @@
 
 
 ### 어그리게잇으로 묶기 / 액터, 커맨드 부착하여 읽기 좋게
-![image](https://user-images.githubusercontent.com/70302894/96394196-59259c80-11fc-11eb-9127-461cd5522b87.JPG)
+![2](https://user-images.githubusercontent.com/64885343/96411192-090e0080-1223-11eb-995a-11b2656a5bc5.png)
 
     - 숙소 예약, 결제, 숙소 관리 등은 그와 연결된 command 와 event 들에 의하여 트랜잭션이 유지되어야 하는 단위로 묶어준다.
 
 ### 바운디드 컨텍스트로 묶기
 
-![image](https://user-images.githubusercontent.com/70302894/96394197-59be3300-11fc-11eb-9342-1106528fcb0c.JPG)
+![3](https://user-images.githubusercontent.com/64885343/96411193-09a69700-1223-11eb-9a23-54add65b93af.png)
 
     - 도메인 서열 분리 
         - 예약 : 고객 예약 오류를 최소화 한다. (Core)
@@ -143,21 +143,21 @@
 
 ### 폴리시 부착 (괄호는 수행주체, 폴리시 부착을 둘째단계에서 해놔도 상관 없음. 전체 연계가 초기에 드러남)
 
-![image](https://user-images.githubusercontent.com/70302894/96394198-5a56c980-11fc-11eb-912d-df12c1954bed.JPG)
+![4](https://user-images.githubusercontent.com/64885343/96411194-0a3f2d80-1223-11eb-847d-99ae092070de.png)
 
 ### 폴리시의 이동과 컨텍스트 매핑 (점선은 Pub/Sub, 실선은 Req/Resp)
 
-![image](https://user-images.githubusercontent.com/70302894/96394199-5a56c980-11fc-11eb-8f6f-9246f8ded1e2.JPG)
+![5](https://user-images.githubusercontent.com/64885343/96411196-0a3f2d80-1223-11eb-8b10-e89c5a6f0113.png)
 
 ### 완성된 1차 모형
 
-![image](https://user-images.githubusercontent.com/70302894/96394200-5aef6000-11fc-11eb-807d-86c87e834f44.jpg)
+![6](https://user-images.githubusercontent.com/64885343/96411197-0ad7c400-1223-11eb-9b60-40ee68bd4c98.png)
 
 
 
 ### 1차 완성본에 대한 기능적/비기능적 요구사항을 커버하는지 검증
 
-![image](https://user-images.githubusercontent.com/70302894/96394204-5c208d00-11fc-11eb-9ac7-f15fb95d5fac.jpg)
+![7](https://user-images.githubusercontent.com/64885343/96411199-0ad7c400-1223-11eb-9dd6-c2c3b0fc9423.png)
 
     - 고객이 숙소 예약 가능 여부를 확인한다.(?)
     - 고객이 숙소를 선택해 예약을 진행한다. (OK)
@@ -171,7 +171,7 @@
 
 
 
-![image](https://user-images.githubusercontent.com/70302894/96394205-5cb92380-11fc-11eb-8801-afefc12aa9b1.jpg)
+![8](https://user-images.githubusercontent.com/64885343/96411203-0b705a80-1223-11eb-9294-e9f24479a7cc.png)
 
 
     - 고객이 예약/결제를 취소한다. (OK)
@@ -185,7 +185,7 @@
 
 ### 모델 수정
 
-![image](https://user-images.githubusercontent.com/70302894/96394207-5d51ba00-11fc-11eb-80d9-1d5bb4356b1a.JPG)
+![9](https://user-images.githubusercontent.com/64885343/96411206-0b705a80-1223-11eb-9738-7c419322dfcc.png)
     
     - View Model 추가
     - 수정된 모델은 모든 요구사항을 커버함.
