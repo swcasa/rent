@@ -283,9 +283,12 @@ public class Pay {
 - Entity Pattern 과 Repository Pattern 을 적용하여 JPA 를 통하여 다양한 데이터소스 유형 (RDB or NoSQL) 에 대한 별도의 처리가 없도록    
 데이터 접근 어댑터를 자동 생성하기 위하여 Spring Data REST 의 RestRepository 를 적용
 ```
-package housebook;
+package carRent;
+
 import org.springframework.data.repository.PagingAndSortingRepository;
-    public interface PaymentRepository extends PagingAndSortingRepository<Payment, Long>{
+
+public interface PayRepository extends PagingAndSortingRepository<Pay, Long>{
+
 
 }
 ```
@@ -294,58 +297,19 @@ import org.springframework.data.repository.PagingAndSortingRepository;
 ---
 #### 적용 후 REST API 의 테스트
 
-1. 숙소1 등록
-``` http http://localhost:8083/houses id=1 status=WAITING houseName=신라호텔 housePrice=200000 ```
+1. 차량 등록
 
-<img width="457" alt="숙소등록1" src="https://user-images.githubusercontent.com/54618778/96413666-f0074e80-1226-11eb-88ca-1278f0077fc9.png">
-
-
-2. 숙소2 등록
-``` http http://localhost:8083/houses id=2 status=WAITING houseName=SK펜션 housePrice=500000 ```
-
-<img width="463" alt="숙소등록2" src="https://user-images.githubusercontent.com/54618778/96413673-f269a880-1226-11eb-9b1e-62ad3f98cd30.png">
+![차량 등록 캡쳐](https://user-images.githubusercontent.com/64885343/96722043-e711ab00-13e7-11eb-8b81-7b9871cc0235.png)
 
 
-3. 숙소1 예약 
-``` http POST http://localhost:8081/books id=1 status=BOOKED houseId=1 bookDate=20201016 housePrice=200000 ```
+2. 차량 예약 
 
-<img width="448" alt="숙소예약1" src="https://user-images.githubusercontent.com/54618778/96413678-f4336c00-1226-11eb-8665-1ed312adbed1.png">
-
-
-4. 숙소2 예약
-``` http POST http://localhost:8081/books id=2 status=BOOKED houseId=2 bookDate=20201016 housePrice=500000 ```
-
-<img width="450" alt="숙소예약2" src="https://user-images.githubusercontent.com/54618778/96413681-f4cc0280-1226-11eb-8f6c-f3d0e03c0456.png">
+![차량 예약 캡쳐](https://user-images.githubusercontent.com/64885343/96722073-ee38b900-13e7-11eb-9ba4-378785482fe5.png)
 
 
-5. 숙소2 예약 취소
-``` http http://localhost:8081/books id=2 status=BOOK_CANCELED houseId=2 ```
+3. 차량 보기
 
-<img width="451" alt="숙소취소" src="https://user-images.githubusercontent.com/54618778/96413687-f5fd2f80-1226-11eb-87fd-2f8c7ea695c5.png">
-
-
-6. 예약 보기
-```http localhost:8081/books ```
-
-<img width="573" alt="예약상태보기" src="https://user-images.githubusercontent.com/54618778/96413688-f695c600-1226-11eb-9659-11ba9322f19d.png">
-
-
-7. 숙소 보기 
-``` http localhost:8083/houses ```
-
-<img width="591" alt="숙소상태보기" src="https://user-images.githubusercontent.com/54618778/96413674-f3023f00-1226-11eb-830e-d6ab51cb745b.png">
-
-
-8. 숙소 예약된 상태 (MyPage)
-``` http localhost:8084/mypages/7 ```
-
-<img width="569" alt="숙소예약된상태" src="https://user-images.githubusercontent.com/54618778/96413683-f5649900-1226-11eb-8ec6-a384afb76ead.png">
-
-
-9. 숙소 예약취소된 상태 (MyPage)
-``` http localhost:8084/mypages/9 ```
-
-<img width="545" alt="MyPage_예약취소" src="https://user-images.githubusercontent.com/54618778/96413690-f72e5c80-1226-11eb-9a1e-72df208097fc.png">
+![조회](https://user-images.githubusercontent.com/64885343/96722082-f09b1300-13e7-11eb-861f-bf623eed244f.png)
 
 
 ---
@@ -353,10 +317,10 @@ import org.springframework.data.repository.PagingAndSortingRepository;
 
 ## 폴리글랏 퍼시스턴스
 
-각 마이크로서비스는 별도의 H2 DB를 가지고 있으며 CQRS를 위한 Mypage에서는 H2가 아닌 HSQLDB를 적용하였다.
+각 마이크로서비스는 별도의 H2 DB를 가지고 있으며 CQRS를 위한 system에서는 H2가 아닌 HSQLDB를 적용하였다.
 
 ```
-# Mypage의 pom.xml에 dependency 추가
+# system의 pom.xml에 dependency 추가
 <!-- 
 		<dependency>
 			<groupId>com.h2database</groupId>
@@ -379,20 +343,26 @@ import org.springframework.data.repository.PagingAndSortingRepository;
 
 
 ## 동기식 호출과 Fallback 처리
-Book → Payment 간 호출은 동기식 일관성 유지하는 트랜잭션으로 처리.     
+Order → Payment 간 호출은 동기식 일관성 유지하는 트랜잭션으로 처리.     
 호출 프로토콜은 이미 앞서 Rest Repository 에 의해 노출되어있는 REST 서비스를 FeignClient 를 이용하여 호출.     
 
 ```
-BookApplication.java.
+package carRent;
+import carRent.config.kafka.KafkaProcessor;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ApplicationContext;
+import org.springframework.cloud.stream.annotation.EnableBinding;
 import org.springframework.cloud.openfeign.EnableFeignClients;
+
 
 @SpringBootApplication
 @EnableBinding(KafkaProcessor.class)
 @EnableFeignClients
-public class BookApplication {
+public class OrderApplication {
     protected static ApplicationContext applicationContext;
     public static void main(String[] args) {
-        applicationContext = SpringApplication.run(BookApplication.class, args);
+        applicationContext = SpringApplication.run(OrderApplication.class, args);
     }
 }
 ```
@@ -406,25 +376,30 @@ Feign 방식은 넷플릭스에서 만든 Http Client로 Http call을 할 때, �
 
 - 예약 받은 직후(@PostPersist) 결제 요청함
 ```
--- Book.java
-    @PostPersist
-    public void onPostPersist(){
-        Booked booked = new Booked();
-        BeanUtils.copyProperties(this, booked);
-        booked.publishAfterCommit();
+-- Order.java
+        @PrePersist
+    public void onPrePersist(){
 
-        //Following code causes dependency to external APIs
-        // it is NOT A GOOD PRACTICE. instead, Event-Policy mapping is recommended.
+        try {
+            Thread.currentThread().sleep((long) (800 + Math.random() * 220));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        Ordered ordered = new Ordered();
+        BeanUtils.copyProperties(this, ordered);
+        ordered.publishAfterCommit();
 
-        housebook.external.Payment payment = new housebook.external.Payment();
+        carRent.external.Pay pay = new carRent.external.Pay();
+        pay.setOrderId(ordered.getId());
+        pay.setQty(ordered.getQty());
+        pay.setCarId(ordered.getCarId());
+        System.out.println("##### 오더아이디 어디감 : " + ordered.getId());
+        pay.setStauts("APPROVED");
+
         // mappings goes here
-        
-        payment.setBookId(booked.getId());
-        payment.setHouseId(booked.getHouseId());
-        ...// 중략 //...
+        OrderApplication.applicationContext.getBean(carRent.external.PayService.class)
+            .payreq(pay);
 
-        BookApplication.applicationContext.getBean(housebook.external.PaymentService.class)
-            .paymentRequest(payment);
 
     }
 ```
@@ -433,12 +408,12 @@ Feign 방식은 넷플릭스에서 만든 Http Client로 Http call을 할 때, �
 
 - 동기식 호출에서는 호출 시간에 따른 타임 커플링이 발생하며, 결제 시스템이 장애가 나면 주문도 못받는다는 것을 확인함.   
 ```
-Book -- (http request/response) --> Payment
+Order -- (http request/response) --> Payment
 
 # Payment 서비스 종료
 
-# Book 등록
-http http://localhost:8081/books id=1 status=BOOKED houseId=1 bookDate=20201016 housePrice=200000    #Fail!!!!
+# Order 등록
+http http://localhost:8081/orders id=1 status=ORDERED carId=1 orderId=1     #Fail!!!!
 ```
 Payment를 종료한 시점에서 상기 Book 등록 Script 실행 시, 500 Error 발생.
 ("Could not commit JPA transaction; nested exception is javax.persistence.RollbackException: Error while committing the transaction")   
