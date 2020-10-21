@@ -1,10 +1,6 @@
-
-- 체크포인트 : http://www.msaez.io/#/storming/NMhho4mGA8eu4HsduIIw1ujbKLn2/every/68247b3541f0c829d6f4f224a2765bf2/-MJp6OmjlMbSMJL-_PuI
-
-
 # Table of contents
 
-- [렌트카](#---)
+- [렌트카 서비스](#---)
   - [서비스 시나리오](#서비스-시나리오)
   - [체크포인트](#체크포인트)
   - [분석/설계](#분석설계)
@@ -228,10 +224,10 @@
 cd order
 mvn spring-boot:run
 
-cd pay
+cd payment
 mvn spring-boot:run 
 
-cd car
+cd rentcar
 mvn spring-boot:run  
 
 cd system
