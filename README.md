@@ -191,7 +191,7 @@
 
 ### 비기능 요구사항에 대한 검증
 
-![image](https://user-images.githubusercontent.com/70302894/96396179-8aed3200-1201-11eb-9ef9-ff872125f76e.jpg)
+![9](https://user-images.githubusercontent.com/64885343/96411206-0b705a80-1223-11eb-9738-7c419322dfcc.png)
 
 
 	- 차량 등록 서비스를 주문/결제 서비스와 격리하여 차량 등록 서비스 장애 시에도 예약이 가능
