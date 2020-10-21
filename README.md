@@ -751,5 +751,5 @@ metadata:
 ```
 configmap describe 시 확인 가능
 
-![콘피그맵](https://user-images.githubusercontent.com/64885343/96729778-7c18a200-13f0-11eb-89e8-47afbc56a65c.png)
+![콘피그맵](https://user-images.githubusercontent.com/64885343/96732652-8a1bf200-13f3-11eb-9c6f-328a8e78acfc.png)
 
