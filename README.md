@@ -632,11 +632,11 @@ watch kubectl get deploy skccuser04-payment -n istio-cb-ns
 ```
 - 어느정도 시간이 흐른 후 (약 30초) 스케일 아웃이 벌어지는 것을 확인할 수 있다:
 
-![image](https://user-images.githubusercontent.com/70302894/96588282-6d61ba80-131e-11eb-8f75-90e10ef6f203.JPG)
+![오토스케일](https://user-images.githubusercontent.com/64885343/96728103-bd0fb700-13ee-11eb-81ac-dc7fc94e60bd.png)
 
 - siege 의 로그를 보아도 전체적인 성공률이 높아진 것을 확인 할 수 있다. 
 
-![오토스케일링 결과](https://user-images.githubusercontent.com/70302894/96664104-07604c00-138d-11eb-9fed-9c7bd56bf879.JPG)
+![부하 91](https://user-images.githubusercontent.com/64885343/96728108-bed97a80-13ee-11eb-8b6f-d365ea99fcc1.png)
 
 
 
@@ -646,18 +646,15 @@ watch kubectl get deploy skccuser04-payment -n istio-cb-ns
 
 - seige 로 배포작업 직전에 워크로드를 모니터링 함.
 ```
-siege -c20 -t20S -v  --content-type "application/json" 'http://skccuser04-payment:8080/payments POST {"id":"1","houseId":"1","bookId":"1","status":"BOOKED"}'
+siege -c20 -t20S -v  --content-type "application/json" 'http://skccuser26-payment:8080/pays POST {"id":"1","carId":"1","orderId":"1","status":"ORDERD","qty":"10"}'
 ```
 
 - 코드빌드에서 재빌드 
 
-![image](https://user-images.githubusercontent.com/70302894/96588975-3dff7d80-131f-11eb-9018-6527b1907591.JPG)
-
-
 
 - seige 의 화면으로 넘어가서 Availability 가 100% 미만으로 떨어졌는지 확인
 
-<img width="594" alt="무정지" src="https://user-images.githubusercontent.com/7261288/96663462-abe18e80-138b-11eb-8a5d-59d11ac07491.png">
+![무정지 70%](https://user-images.githubusercontent.com/64885343/96728266-e6c8de00-13ee-11eb-8fdc-9ab951f16c15.png)
 
 배포기간중 Availability 가 평소 100%에서 70% 대로 떨어지는 것을 확인. 원인은 쿠버네티스가 성급하게 새로 올려진 서비스를 READY 상태로 인식하여 서비스 유입을 진행한 것이기 때문. 이를 막기위해 Readiness Probe 와 liveness Prove 설정을 다시 추가:
 
