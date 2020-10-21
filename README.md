@@ -415,62 +415,64 @@ Order -- (http request/response) --> Payment
 # Order 등록
 http http://localhost:8081/orders id=1 status=ORDERED carId=1 orderId=1     #Fail!!!!
 ```
-Payment를 종료한 시점에서 상기 Book 등록 Script 실행 시, 500 Error 발생.
+Payment를 종료한 시점에서 상기 Car 등록 Script 실행 시, 500 Error 발생.
 ("Could not commit JPA transaction; nested exception is javax.persistence.RollbackException: Error while committing the transaction")   
-![](images/결제서비스_중지_시_예약시도.png)   
-![500](https://user-images.githubusercontent.com/54618778/96659850-01fe0400-1383-11eb-8c18-0caf296f68ba.png)
+
 
 ---
 ## 비동기식 호출 / 시간적 디커플링 / 장애격리 / 최종 (Eventual) 일관성 테스트
 
-Payment가 이루어진 후에(PAID) House시스템으로 이를 알려주는 행위는 동기식이 아니라 비 동기식으로 처리.   
-House 시스템의 처리를 위하여 결제주문이 블로킹 되지 않아도록 처리.   
+Payment가 이루어진 후에(PAID) Car시스템으로 이를 알려주는 행위는 동기식이 아니라 비 동기식으로 처리.   
+Car 시스템의 처리를 위하여 결제주문이 블로킹 되지 않아도록 처리.   
 이를 위하여 결제이력에 기록을 남긴 후에 곧바로 결제승인이 되었다는 도메인 이벤트를 카프카로 송출한다(Publish).   
 
-- House 서비스에서는 PAID 이벤트에 대해서 이를 수신하여 자신의 정책을 처리하도록 PolicyHandler 를 구현한다:   
+- Car 서비스에서는 PAID 이벤트에 대해서 이를 수신하여 자신의 정책을 처리하도록 PolicyHandler 를 구현한다:   
 ```
+
 @Service
 public class PolicyHandler{
-
-    @Autowired
-    HouseRepository houseRepository;
-    
     @StreamListener(KafkaProcessor.INPUT)
     public void onStringEventListener(@Payload String eventString){
 
     }
 
+    @Autowired
+    CarRepository carRepository;
+
     @StreamListener(KafkaProcessor.INPUT)
-    public void wheneverPaid_Rent(@Payload Paid paid){
+    public void wheneverPaid_Rented(@Payload Paid paid){
+
         if(paid.isMe()){
-            System.out.println("##### listener Rent : " + paid.toJson());
+            System.out.println("##### listener Rented : " + paid.toJson());
 
-            Optional<House> optional = houseRepository.findById(paid.getHouseId());
-            House house = optional.get();
-            house.setBookId(paid.getBookId());
-            house.setStatus("RENTED");
 
-            houseRepository.save(house);
+            Optional<Car> carOptional = carRepository.findById(paid.getCarId());
+
+            Car car = carOptional.get();
+            car.setCnt(car.getCnt()-paid.getQty());
+
+
+            carRepository.save(car);
         }
     }
 ```
 
-- House 시스템은 주문/결제와 완전히 분리되어있으며, 이벤트 수신에 따라 처리되기 때문에, House 시스템이 유지보수로 인해 잠시 내려간 상태라도 주문을 받는데 문제가 없다:
+- Car 시스템은 주문/결제와 완전히 분리되어있으며, 이벤트 수신에 따라 처리되기 때문에, Car 시스템이 유지보수로 인해 잠시 내려간 상태라도 주문을 받는데 문제가 없다:
 ```
-# House Service 를 잠시 내려놓음 (ctrl+c)
+# Car Service 를 잠시 내려놓음 (ctrl+c)
 
 #PAID 처리
-http http://localhost:8082/payments id=1 status=PAID bookId=1 houseId=1 paymentDate=20201016 housePrice=200000 #Success!!
+http http://localhost:8082/payments id=1 status=PAID carId=1 orderId=1          #Success!!
 
 #결제상태 확인
 http http://localhost:8082/payments  #제대로 Data 들어옴   
 
 #House 서비스 기동
-cd house
+cd rentcar
 mvn spring-boot:run
 
-#House 상태 확인
-http http://localhost:8083/houses     # 제대로 kafka로 부터 data 수신 함을 확인
+#Car 상태 확인
+http http://localhost:8083/cars     # 제대로 kafka로 부터 data 수신 함을 확인
 ```
 
 
@@ -485,20 +487,20 @@ http http://localhost:8083/houses     # 제대로 kafka로 부터 data 수신 �
 
 각 구현체들은 각자의 source repository 에 구성되었고, 사용한 CI/CD 플랫폼은 AWS CodeBuild를 사용하였으며, pipeline build script 는 각 프로젝트 폴더 이하에 buildspec.yml 에 포함되었다.
 
-![image](https://user-images.githubusercontent.com/70302894/96580324-160a1d00-1313-11eb-97d3-ba0b269a658e.JPG)
+![CICD codebuild](https://user-images.githubusercontent.com/64885343/96725086-7cfb0500-13eb-11eb-96ed-a3fed1713848.png)
 
 Webhook으로 연결되어 github에서 수정 시 혹은 codebuild에서 곧바로 빌드가 가능하다.
 
-![image](https://user-images.githubusercontent.com/70302894/96580321-15718680-1313-11eb-9cac-e2407f7579d1.JPG)
+![포CICD 구성 빌드기록](https://user-images.githubusercontent.com/64885343/96725096-7f5d5f00-13eb-11eb-8f2a-46be3a094151.png)
 
 
 ## 동기식 호출 / 서킷 브레이킹 / 장애격리
 
-* 서킷 브레이킹 프레임워크의 선택: Spring FeignClient + Hystrix 옵션을 사용하여 구현함
+* 서킷 브레이킹 프레임워크의 선택: Spring FeignClient 을 사용하여 구현함
 
-시나리오는 book -> payment 시의 연결을 RESTful Request/Response 로 연동하여 구현이 되어있고, 결제 요청이 과도할 경우 CB 를 통하여 장애격리.
+시나리오는 order -> payment 시의 연결을 RESTful Request/Response 로 연동하여 구현이 되어있고, 결제 요청이 과도할 경우 CB 를 통하여 장애격리.
 
-- Hystrix 를 설정:  application.yml에 요청처리 쓰레드에서 처리시간이 610 밀리가 넘어서기 시작하여 어느정도 유지되면 CB 회로가 닫히도록 (요청을 빠르게 실패처리, 차단) 설정
+
 
 ![image](https://user-images.githubusercontent.com/70302894/96580900-f6bfbf80-1313-11eb-8210-4a4d96039f69.JPG)
 
