@@ -501,37 +501,27 @@ Webhook으로 연결되어 github에서 수정 시 혹은 codebuild에서 곧바
 시나리오는 order -> payment 시의 연결을 RESTful Request/Response 로 연동하여 구현이 되어있고, 결제 요청이 과도할 경우 CB 를 통하여 장애격리.
 
 
-
-![image](https://user-images.githubusercontent.com/70302894/96580900-f6bfbf80-1313-11eb-8210-4a4d96039f69.JPG)
-
-
 - 피호출 서비스(결제:payment) 의 임의 부하 처리 - 400 밀리에서 증감 220 밀리 정도 왔다갔다 하게
 ```
-# Payment.java (Entity)
+# Pay.java (Entity)
     @PostPersist
     public void onPostPersist(){
-        System.out.println("##### onPostPersist status = " + this.getStatus());
-        
-        try {
-            Thread.currentThread().sleep((long) (400 + Math.random() * 220));
-            System.out.println("##### SLEEP");
 
+        try {
+            Thread.currentThread().sleep((long) (800 + Math.random() * 220));
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        
-        if (this.getStatus().equals("BOOKED") || this.getStatus().equals("PAID")) {
-            Paid paid = new Paid();
-            BeanUtils.copyProperties(this, paid);
-            paid.setStatus("PAID");
-            paid.publishAfterCommit();
-        }
+
+        Paid paid = new Paid();
+        BeanUtils.copyProperties(this, paid);
+        paid.publishAfterCommit();
     }
 ```
 
 일단 서킷브레이커 미적용 시, 모든 요청이 성공했음을 확인
 
-![image](https://user-images.githubusercontent.com/70302894/96579636-1e158d00-1312-11eb-9a17-277b3caf3876.JPG)
+![부하(100%)](https://user-images.githubusercontent.com/64885343/96725646-06aad280-13ec-11eb-8a99-8c22caf3a33d.png)
 
 
 데스티네이션 룰 적용
@@ -543,24 +533,27 @@ metadata:
   name: dr-payment
   namespace: istio-cb-ns
 spec:
-  host: payment
+  host: skccuser26-payment
   trafficPolicy:
     connectionPool:
+      tcp:
+        maxConnections: 1024           # 목적지로 가는 HTTP, TCP connection 최대 값. (Default 1024)
       http:
-        http1MaxPendingRequests: 5
-        maxRequestsPerConnection: 5
+        http1MaxPendingRequests: 1  # 연결을 기다리는 request 수를 1개로 제한 (Default 
+        maxRequestsPerConnection: 1 # keep alive 기능 disable
+        maxRetries: 3               # 기다리는 동안 최대 재시도 수(Default 1024)
     outlierDetection:
-      interval: 1s
-      consecutiveErrors: 1
-      baseEjectionTime: 10m
-      maxEjectionPercent: 100
+      consecutiveErrors: 5          # 5xx 에러가 5번 발생하면
+      interval: 5s                  # 5초마다 스캔 하여
+      baseEjectionTime: 30s         # 30 초 동안 circuit breaking 처리   
+      maxEjectionPercent: 10       # 10% 로 차단
 EOF
 ```
 적용 후 부하테스트 시 서킷브레이커의 동작으로 미연결된 결과가 보임
 - 동시사용자 20명
 - 20초 동안 실시
 ```
-siege -c20 -t20S -v  --content-type "application/json" 'http://skccuser04-payment:8080/payments POST {"houseId":"1"}'
+siege -c3 -t20S -v  --content-type "application/json" 'http://skccuser26-payment:8080/pays POST {"id":"1","carId":"1","orderId":"1","status":"ORDERD","qty":"10"}'
 ```
 
 ![image](https://user-images.githubusercontent.com/70302894/96579639-1f46ba00-1312-11eb-8b13-1c552b108711.JPG)
