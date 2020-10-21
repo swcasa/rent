@@ -556,17 +556,15 @@ EOF
 siege -c3 -t20S -v  --content-type "application/json" 'http://skccuser26-payment:8080/pays POST {"id":"1","carId":"1","orderId":"1","status":"ORDERD","qty":"10"}'
 ```
 
-![image](https://user-images.githubusercontent.com/70302894/96579639-1f46ba00-1312-11eb-8b13-1c552b108711.JPG)
+58%정도의 요청 성공률 확인
 
-78%정도의 요청 성공률 확인
-
-![image](https://user-images.githubusercontent.com/70302894/96579632-1ce46000-1312-11eb-8c7a-8aff5c351056.JPG)
+![부하 58](https://user-images.githubusercontent.com/64885343/96725907-67d2a600-13ec-11eb-9d6c-99bdce3f0234.png)
 
 키알리 화면 캡쳐
-![image](https://user-images.githubusercontent.com/70302894/96579638-1eae2380-1312-11eb-8b9e-c3e21aec7d75.JPG)
+![키알리 부하](https://user-images.githubusercontent.com/64885343/96726135-a10b1600-13ec-11eb-9f5a-9461140201a2.png)
 
 예거 화면 캡쳐
-![예거](https://user-images.githubusercontent.com/70302894/96673034-8743e180-13a0-11eb-9617-d9ab5149590f.JPG)
+![예거](https://user-images.githubusercontent.com/64885343/96726156-a5373380-13ec-11eb-8e6b-d19945920389.png)
 
 
 
@@ -610,9 +608,9 @@ EOF
 
 - 결제서비스에 대한 replica 를 동적으로 늘려주도록 HPA 를 설정한다. 설정은 CPU 사용량이 10프로를 넘어서면 replica 를 10개까지 늘려준다:
 ```
-kubectl autoscale deploy skccuser04-payment --min=1 --max=10 --cpu-percent=10 -n istio-cb-ns
+kubectl autoscale deploy skccuser26-payment --min=1 --max=10 --cpu-percent=10 -n istio-cb-ns
 
-kubectl autoscale deployment.apps/skccuser04-payment --cpu-percent=10 --min=1 --max=10 -n istio-cb-ns
+kubectl autoscale deployment.apps/skccuser26-payment --cpu-percent=10 --min=1 --max=10 -n istio-cb-ns
 ```
 
 오토스케일을 위한 metrics-server를 설치하고 배포한다. 적용한 istrio injection을 해제한다.
