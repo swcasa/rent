@@ -686,14 +686,13 @@ siege -c20 -t20S -v  --content-type "application/json" 'http://skccuser26-paymen
 ```
 - git commit 이후 자동배포 시 siege 돌리고 Availability 확인:
 
-![image](https://user-images.githubusercontent.com/70302894/96663164-1b0ab300-138b-11eb-9286-94a73c09cff4.JPG)
+![무정지 재배포 100](https://user-images.githubusercontent.com/64885343/96728513-28f21f80-13ef-11eb-939c-d1cc33627d81.png)
+
 
 
 배포기간 동안 Availability 가 변화없기 때문에 무정지 재배포가 성공한 것으로 확인됨.
 
-또한 Liveness Probe가 적용되어있어 kubectl get all -n istio-cb-ns에서 확인 시 자동으로 Restart 됨 (하단이미지 Restart 횟수 확인가능)
-
-![라이브네스 전](https://user-images.githubusercontent.com/70302894/96665219-5c9d5d00-138f-11eb-8c62-ad9ade0bc248.JPG)
+Liveness Probe가 적용되어있어 kubectl get all -n istio-cb-ns에서 확인 시 자동으로 Restart 됨 
 
 
 # configmap
