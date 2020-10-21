@@ -246,14 +246,15 @@ import org.springframework.beans.BeanUtils;
 import java.util.List;
 
 @Entity
-@Table(name="Order_table")
-public class Order {
+@Table(name="Pay_table")
+public class Pay {
 
     @Id
     @GeneratedValue(strategy=GenerationType.AUTO)
     private Long id;
-    private Long catId;
-    private String status;
+    private Long carId;
+    private Long orderId;
+    private String stauts;
     private Integer qty;
 
     .../... 중략  .../...
@@ -264,29 +265,18 @@ public class Order {
     public void setId(Long id) {
         this.id = id;
     }
-    public Long getCatId() {
-        return catId;
+    public Long getCarId() {
+        return carId;
     }
 
-    public void setCatId(Long catId) {
-        this.catId = catId;
+    public void setCarId(Long carId) {
+        this.carId = carId;
     }
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-    public Integer getQty() {
-        return qty;
-    }
-
+    .../... 중략  .../...
     public void setQty(Integer qty) {
         this.qty = qty;
     }
 }
-
 ```
 - Entity Pattern 과 Repository Pattern 을 적용하여 JPA 를 통하여 다양한 데이터소스 유형에 대한 별도의 처리가 없도록 데이터 접근 어댑터를 자동 생성하기 위하여 Spring Data REST 의 RestRepository 를 적용하였다
 ```
