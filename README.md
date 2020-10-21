@@ -277,28 +277,78 @@ public class Pay {
         this.qty = qty;
     }
 }
-```
-- Entity Pattern 과 Repository Pattern 을 적용하여 JPA 를 통하여 다양한 데이터소스 유형에 대한 별도의 처리가 없도록 데이터 접근 어댑터를 자동 생성하기 위하여 Spring Data REST 의 RestRepository 를 적용하였다
-```
-package fooddelivery;
 
+```
+
+- Entity Pattern 과 Repository Pattern 을 적용하여 JPA 를 통하여 다양한 데이터소스 유형 (RDB or NoSQL) 에 대한 별도의 처리가 없도록    
+데이터 접근 어댑터를 자동 생성하기 위하여 Spring Data REST 의 RestRepository 를 적용
+```
+package housebook;
 import org.springframework.data.repository.PagingAndSortingRepository;
+    public interface PaymentRepository extends PagingAndSortingRepository<Payment, Long>{
 
-public interface 결제이력Repository extends PagingAndSortingRepository<결제이력, Long>{
 }
 ```
-- 적용 후 REST API 의 테스트
-```
-# app 서비스의 주문처리
-http localhost:8081/orders item="통닭"
+   
+   
+---
+#### 적용 후 REST API 의 테스트
 
-# store 서비스의 배달처리
-http localhost:8083/주문처리s orderId=1
+1. 숙소1 등록
+``` http http://localhost:8083/houses id=1 status=WAITING houseName=신라호텔 housePrice=200000 ```
 
-# 주문 상태 확인
-http localhost:8081/orders/1
+<img width="457" alt="숙소등록1" src="https://user-images.githubusercontent.com/54618778/96413666-f0074e80-1226-11eb-88ca-1278f0077fc9.png">
 
-```
+
+2. 숙소2 등록
+``` http http://localhost:8083/houses id=2 status=WAITING houseName=SK펜션 housePrice=500000 ```
+
+<img width="463" alt="숙소등록2" src="https://user-images.githubusercontent.com/54618778/96413673-f269a880-1226-11eb-9b1e-62ad3f98cd30.png">
+
+
+3. 숙소1 예약 
+``` http POST http://localhost:8081/books id=1 status=BOOKED houseId=1 bookDate=20201016 housePrice=200000 ```
+
+<img width="448" alt="숙소예약1" src="https://user-images.githubusercontent.com/54618778/96413678-f4336c00-1226-11eb-8665-1ed312adbed1.png">
+
+
+4. 숙소2 예약
+``` http POST http://localhost:8081/books id=2 status=BOOKED houseId=2 bookDate=20201016 housePrice=500000 ```
+
+<img width="450" alt="숙소예약2" src="https://user-images.githubusercontent.com/54618778/96413681-f4cc0280-1226-11eb-8f6c-f3d0e03c0456.png">
+
+
+5. 숙소2 예약 취소
+``` http http://localhost:8081/books id=2 status=BOOK_CANCELED houseId=2 ```
+
+<img width="451" alt="숙소취소" src="https://user-images.githubusercontent.com/54618778/96413687-f5fd2f80-1226-11eb-87fd-2f8c7ea695c5.png">
+
+
+6. 예약 보기
+```http localhost:8081/books ```
+
+<img width="573" alt="예약상태보기" src="https://user-images.githubusercontent.com/54618778/96413688-f695c600-1226-11eb-9659-11ba9322f19d.png">
+
+
+7. 숙소 보기 
+``` http localhost:8083/houses ```
+
+<img width="591" alt="숙소상태보기" src="https://user-images.githubusercontent.com/54618778/96413674-f3023f00-1226-11eb-830e-d6ab51cb745b.png">
+
+
+8. 숙소 예약된 상태 (MyPage)
+``` http localhost:8084/mypages/7 ```
+
+<img width="569" alt="숙소예약된상태" src="https://user-images.githubusercontent.com/54618778/96413683-f5649900-1226-11eb-8ec6-a384afb76ead.png">
+
+
+9. 숙소 예약취소된 상태 (MyPage)
+``` http localhost:8084/mypages/9 ```
+
+<img width="545" alt="MyPage_예약취소" src="https://user-images.githubusercontent.com/54618778/96413690-f72e5c80-1226-11eb-9a1e-72df208097fc.png">
+
+
+---
 
 
 ## 폴리글랏 퍼시스턴스
@@ -327,136 +377,130 @@ http localhost:8081/orders/1
 
 
 
-## 동기식 호출 과 Fallback 처리
 
-분석단계에서의 조건 중 하나로 예약(book)->결제(payment) 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리하기로 하였다. 호출 프로토콜은 이미 앞서 Rest Repository 에 의해 노출되어있는 REST 서비스를 FeignClient 를 이용하여 호출하도록 한다. 
-
-- 결제서비스를 호출하기 위하여 Stub과 (FeignClient) 를 이용하여 Service 대행 인터페이스 (Proxy) 를 구현 
+## 동기식 호출과 Fallback 처리
+Book → Payment 간 호출은 동기식 일관성 유지하는 트랜잭션으로 처리.     
+호출 프로토콜은 이미 앞서 Rest Repository 에 의해 노출되어있는 REST 서비스를 FeignClient 를 이용하여 호출.     
 
 ```
-# (app) 결제이력Service.java
+BookApplication.java.
+import org.springframework.cloud.openfeign.EnableFeignClients;
 
-package fooddelivery.external;
-
-@FeignClient(name="pay", url="http://localhost:8082")//, fallback = 결제이력ServiceFallback.class)
-public interface 결제이력Service {
-
-    @RequestMapping(method= RequestMethod.POST, path="/결제이력s")
-    public void 결제(@RequestBody 결제이력 pay);
-
+@SpringBootApplication
+@EnableBinding(KafkaProcessor.class)
+@EnableFeignClients
+public class BookApplication {
+    protected static ApplicationContext applicationContext;
+    public static void main(String[] args) {
+        applicationContext = SpringApplication.run(BookApplication.class, args);
+    }
 }
 ```
 
-- 주문을 받은 직후(@PostPersist) 결제를 요청하도록 처리
-```
-# Order.java (Entity)
+FeignClient 방식을 통해서 Request-Response 처리.     
+Feign 방식은 넷플릭스에서 만든 Http Client로 Http call을 할 때, 도메인의 변화를 최소화 하기 위하여 interface 로 구현체를 추상화.    
+→ 실제 Request/Response 에러 시 Fegin Error 나는 것 확인   
 
+
+
+
+- 예약 받은 직후(@PostPersist) 결제 요청함
+```
+-- Book.java
     @PostPersist
     public void onPostPersist(){
+        Booked booked = new Booked();
+        BeanUtils.copyProperties(this, booked);
+        booked.publishAfterCommit();
 
-        fooddelivery.external.결제이력 pay = new fooddelivery.external.결제이력();
-        pay.setOrderId(getOrderId());
+        //Following code causes dependency to external APIs
+        // it is NOT A GOOD PRACTICE. instead, Event-Policy mapping is recommended.
+
+        housebook.external.Payment payment = new housebook.external.Payment();
+        // mappings goes here
         
-        Application.applicationContext.getBean(fooddelivery.external.결제이력Service.class)
-                .결제(pay);
+        payment.setBookId(booked.getId());
+        payment.setHouseId(booked.getHouseId());
+        ...// 중략 //...
+
+        BookApplication.applicationContext.getBean(housebook.external.PaymentService.class)
+            .paymentRequest(payment);
+
     }
 ```
 
-- 동기식 호출에서는 호출 시간에 따른 타임 커플링이 발생하며, 결제 시스템이 장애가 나면 주문도 못받는다는 것을 확인:
 
 
+- 동기식 호출에서는 호출 시간에 따른 타임 커플링이 발생하며, 결제 시스템이 장애가 나면 주문도 못받는다는 것을 확인함.   
 ```
-# 결제 (pay) 서비스를 잠시 내려놓음 (ctrl+c)
+Book -- (http request/response) --> Payment
 
-#주문처리
-http localhost:8081/orders item=통닭 storeId=1   #Fail
-http localhost:8081/orders item=피자 storeId=2   #Fail
+# Payment 서비스 종료
 
-#결제서비스 재기동
-cd 결제
-mvn spring-boot:run
-
-#주문처리
-http localhost:8081/orders item=통닭 storeId=1   #Success
-http localhost:8081/orders item=피자 storeId=2   #Success
+# Book 등록
+http http://localhost:8081/books id=1 status=BOOKED houseId=1 bookDate=20201016 housePrice=200000    #Fail!!!!
 ```
+Payment를 종료한 시점에서 상기 Book 등록 Script 실행 시, 500 Error 발생.
+("Could not commit JPA transaction; nested exception is javax.persistence.RollbackException: Error while committing the transaction")   
+![](images/결제서비스_중지_시_예약시도.png)   
+![500](https://user-images.githubusercontent.com/54618778/96659850-01fe0400-1383-11eb-8c18-0caf296f68ba.png)
 
-- 또한 과도한 요청시에 서비스 장애가 도미노 처럼 벌어질 수 있다. (서킷브레이커, 폴백 처리는 운영단계에서 설명한다.)
-
-
-
-
+---
 ## 비동기식 호출 / 시간적 디커플링 / 장애격리 / 최종 (Eventual) 일관성 테스트
 
+Payment가 이루어진 후에(PAID) House시스템으로 이를 알려주는 행위는 동기식이 아니라 비 동기식으로 처리.   
+House 시스템의 처리를 위하여 결제주문이 블로킹 되지 않아도록 처리.   
+이를 위하여 결제이력에 기록을 남긴 후에 곧바로 결제승인이 되었다는 도메인 이벤트를 카프카로 송출한다(Publish).   
 
-결제가 이루어진 후에 숙소에 이를 알려주는 행위는 동기식이 아니라 비 동기식으로 처리하여 숙소 시스템의 처리를 위하여 결제주문이 블로킹 되지 않아도록 처리한다.
- 
-- 이를 위하여 결제이력에 기록을 남긴 후에 곧바로 결제승인이 되었다는 도메인 이벤트를 카프카로 송출한다(Publish)
- 
+- House 서비스에서는 PAID 이벤트에 대해서 이를 수신하여 자신의 정책을 처리하도록 PolicyHandler 를 구현한다:   
 ```
-package fooddelivery;
-
-@Entity
-@Table(name="결제이력_table")
-public class 결제이력 {
-
- ...
-    @PrePersist
-    public void onPrePersist(){
-        결제승인됨 결제승인됨 = new 결제승인됨();
-        BeanUtils.copyProperties(this, 결제승인됨);
-        결제승인됨.publish();
-    }
-
-}
-```
-- 숙소 서비스에서는 결제승인 이벤트에 대해서 이를 수신하여 자신의 정책을 처리하도록 PolicyHandler 를 구현한다:
-
-```
-package fooddelivery;
-
-...
-
 @Service
 public class PolicyHandler{
 
+    @Autowired
+    HouseRepository houseRepository;
+    
     @StreamListener(KafkaProcessor.INPUT)
-    public void whenever결제승인됨_주문정보받음(@Payload 결제승인됨 결제승인됨){
+    public void onStringEventListener(@Payload String eventString){
 
-        if(결제승인됨.isMe()){
-            System.out.println("##### listener 주문정보받음 : " + 결제승인됨.toJson());
-            // 주문 정보를 받았으니, 요리를 슬슬 시작해야지..
-            
-        }
     }
 
-}
+    @StreamListener(KafkaProcessor.INPUT)
+    public void wheneverPaid_Rent(@Payload Paid paid){
+        if(paid.isMe()){
+            System.out.println("##### listener Rent : " + paid.toJson());
 
+            Optional<House> optional = houseRepository.findById(paid.getHouseId());
+            House house = optional.get();
+            house.setBookId(paid.getBookId());
+            house.setStatus("RENTED");
+
+            houseRepository.save(house);
+        }
+    }
 ```
-  
+
+- House 시스템은 주문/결제와 완전히 분리되어있으며, 이벤트 수신에 따라 처리되기 때문에, House 시스템이 유지보수로 인해 잠시 내려간 상태라도 주문을 받는데 문제가 없다:
 ```
+# House Service 를 잠시 내려놓음 (ctrl+c)
 
+#PAID 처리
+http http://localhost:8082/payments id=1 status=PAID bookId=1 houseId=1 paymentDate=20201016 housePrice=200000 #Success!!
 
-```
+#결제상태 확인
+http http://localhost:8082/payments  #제대로 Data 들어옴   
 
-숙소 시스템은 예약/결제와 완전히 분리되어있으며, 이벤트 수신에 따라 처리되기 때문에, 예약/결제 시스템이 유지보수로 인해 잠시 내려간 상태라도 숙소를 등록하는데 문제가 없다:
-```
-# 상점 서비스 (store) 를 잠시 내려놓음 (ctrl+c)
-
-#주문처리
-http localhost:8081/orders item=통닭 storeId=1   #Success
-http localhost:8081/orders item=피자 storeId=2   #Success
-
-#주문상태 확인
-http localhost:8080/orders     # 주문상태 안바뀜 확인
-
-#상점 서비스 기동
-cd 상점
+#House 서비스 기동
+cd house
 mvn spring-boot:run
 
-#주문상태 확인
-http localhost:8080/orders     # 모든 주문의 상태가 "배송됨"으로 확인
+#House 상태 확인
+http http://localhost:8083/houses     # 제대로 kafka로 부터 data 수신 함을 확인
 ```
+
+
+---
+
 
 
 # 운영
@@ -466,219 +510,166 @@ http localhost:8080/orders     # 모든 주문의 상태가 "배송됨"으로 �
 
 각 구현체들은 각자의 source repository 에 구성되었고, 사용한 CI/CD 플랫폼은 AWS CodeBuild를 사용하였으며, pipeline build script 는 각 프로젝트 폴더 이하에 buildspec.yml 에 포함되었다.
 
+![image](https://user-images.githubusercontent.com/70302894/96580324-160a1d00-1313-11eb-97d3-ba0b269a658e.JPG)
+
+Webhook으로 연결되어 github에서 수정 시 혹은 codebuild에서 곧바로 빌드가 가능하다.
+
+![image](https://user-images.githubusercontent.com/70302894/96580321-15718680-1313-11eb-9cac-e2407f7579d1.JPG)
+
+
 ## 동기식 호출 / 서킷 브레이킹 / 장애격리
 
 * 서킷 브레이킹 프레임워크의 선택: Spring FeignClient + Hystrix 옵션을 사용하여 구현함
 
-시나리오는 단말앱(app)-->결제(pay) 시의 연결을 RESTful Request/Response 로 연동하여 구현이 되어있고, 결제 요청이 과도할 경우 CB 를 통하여 장애격리.
+시나리오는 book -> payment 시의 연결을 RESTful Request/Response 로 연동하여 구현이 되어있고, 결제 요청이 과도할 경우 CB 를 통하여 장애격리.
 
-- Hystrix 를 설정:  요청처리 쓰레드에서 처리시간이 610 밀리가 넘어서기 시작하여 어느정도 유지되면 CB 회로가 닫히도록 (요청을 빠르게 실패처리, 차단) 설정
+- Hystrix 를 설정:  application.yml에 요청처리 쓰레드에서 처리시간이 610 밀리가 넘어서기 시작하여 어느정도 유지되면 CB 회로가 닫히도록 (요청을 빠르게 실패처리, 차단) 설정
+
+![image](https://user-images.githubusercontent.com/70302894/96580900-f6bfbf80-1313-11eb-8210-4a4d96039f69.JPG)
+
+
+- 피호출 서비스(결제:payment) 의 임의 부하 처리 - 400 밀리에서 증감 220 밀리 정도 왔다갔다 하게
 ```
-# application.yml
-feign:
-  hystrix:
-    enabled: true
-    
-hystrix:
-  command:
-    # 전역설정
-    default:
-      execution.isolation.thread.timeoutInMilliseconds: 610
-
-```
-
-- 피호출 서비스(결제:pay) 의 임의 부하 처리 - 400 밀리에서 증감 220 밀리 정도 왔다갔다 하게
-```
-# (pay) 결제이력.java (Entity)
-
-    @PrePersist
-    public void onPrePersist(){  //결제이력을 저장한 후 적당한 시간 끌기
-
-        ...
+# Payment.java (Entity)
+    @PostPersist
+    public void onPostPersist(){
+        System.out.println("##### onPostPersist status = " + this.getStatus());
         
         try {
             Thread.currentThread().sleep((long) (400 + Math.random() * 220));
+            System.out.println("##### SLEEP");
+
         } catch (InterruptedException e) {
             e.printStackTrace();
+        }
+        
+        if (this.getStatus().equals("BOOKED") || this.getStatus().equals("PAID")) {
+            Paid paid = new Paid();
+            BeanUtils.copyProperties(this, paid);
+            paid.setStatus("PAID");
+            paid.publishAfterCommit();
         }
     }
 ```
 
-* 부하테스터 siege 툴을 통한 서킷 브레이커 동작 확인:
-- 동시사용자 100명
-- 60초 동안 실시
+일단 서킷브레이커 미적용 시, 모든 요청이 성공했음을 확인
 
+![image](https://user-images.githubusercontent.com/70302894/96579636-1e158d00-1312-11eb-9a17-277b3caf3876.JPG)
+
+
+데스티네이션 룰 적용
 ```
-$ siege -c100 -t60S -r10 --content-type "application/json" 'http://localhost:8081/orders POST {"item": "chicken"}'
-
-** SIEGE 4.0.5
-** Preparing 100 concurrent users for battle.
-The server is now under siege...
-
-HTTP/1.1 201     0.68 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.68 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.70 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.70 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.73 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.75 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.77 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.97 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.81 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.87 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.12 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.16 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.17 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.26 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.25 secs:     207 bytes ==> POST http://localhost:8081/orders
-
-* 요청이 과도하여 CB를 동작함 요청을 차단
-
-HTTP/1.1 500     1.29 secs:     248 bytes ==> POST http://localhost:8081/orders   
-HTTP/1.1 500     1.24 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     1.23 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     1.42 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     2.08 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.29 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     1.24 secs:     248 bytes ==> POST http://localhost:8081/orders
-
-* 요청을 어느정도 돌려보내고나니, 기존에 밀린 일들이 처리되었고, 회로를 닫아 요청을 다시 받기 시작
-
-HTTP/1.1 201     1.46 secs:     207 bytes ==> POST http://localhost:8081/orders  
-HTTP/1.1 201     1.33 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.36 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.63 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.65 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.68 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.69 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.71 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.71 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.74 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.76 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.79 secs:     207 bytes ==> POST http://localhost:8081/orders
-
-* 다시 요청이 쌓이기 시작하여 건당 처리시간이 610 밀리를 살짝 넘기기 시작 => 회로 열기 => 요청 실패처리
-
-HTTP/1.1 500     1.93 secs:     248 bytes ==> POST http://localhost:8081/orders    
-HTTP/1.1 500     1.92 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     1.93 secs:     248 bytes ==> POST http://localhost:8081/orders
-
-* 생각보다 빨리 상태 호전됨 - (건당 (쓰레드당) 처리시간이 610 밀리 미만으로 회복) => 요청 수락
-
-HTTP/1.1 201     2.24 secs:     207 bytes ==> POST http://localhost:8081/orders  
-HTTP/1.1 201     2.32 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.16 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.19 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.19 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.19 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.21 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.29 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.30 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.38 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.59 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.61 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.62 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.64 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.01 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.27 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.33 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.45 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.52 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.57 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.69 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.70 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.69 secs:     207 bytes ==> POST http://localhost:8081/orders
-
-* 이후 이러한 패턴이 계속 반복되면서 시스템은 도미노 현상이나 자원 소모의 폭주 없이 잘 운영됨
-
-
-HTTP/1.1 500     4.76 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.23 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.76 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.74 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.82 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.82 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.84 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.66 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     5.03 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.22 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.19 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.18 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.69 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.65 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     5.13 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.84 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.25 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.25 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.80 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.87 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.33 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.86 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.96 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.34 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.04 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.50 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.95 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.54 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.65 secs:     207 bytes ==> POST http://localhost:8081/orders
-
-
-:
-:
-
-Transactions:		        1025 hits
-Availability:		       63.55 %
-Elapsed time:		       59.78 secs
-Data transferred:	        0.34 MB
-Response time:		        5.60 secs
-Transaction rate:	       17.15 trans/sec
-Throughput:		        0.01 MB/sec
-Concurrency:		       96.02
-Successful transactions:        1025
-Failed transactions:	         588
-Longest transaction:	        9.20
-Shortest transaction:	        0.00
-
+kubectl apply -f - <<EOF
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: dr-payment
+  namespace: istio-cb-ns
+spec:
+  host: payment
+  trafficPolicy:
+    connectionPool:
+      http:
+        http1MaxPendingRequests: 5
+        maxRequestsPerConnection: 5
+    outlierDetection:
+      interval: 1s
+      consecutiveErrors: 1
+      baseEjectionTime: 10m
+      maxEjectionPercent: 100
+EOF
 ```
-- 운영시스템은 죽지 않고 지속적으로 CB 에 의하여 적절히 회로가 열림과 닫힘이 벌어지면서 자원을 보호하고 있음을 보여줌. 하지만, 63.55% 가 성공하였고, 46%가 실패했다는 것은 고객 사용성에 있어 좋지 않기 때문에 Retry 설정과 동적 Scale out (replica의 자동적 추가,HPA) 을 통하여 시스템을 확장 해주는 후속처리가 필요.
+적용 후 부하테스트 시 서킷브레이커의 동작으로 미연결된 결과가 보임
+- 동시사용자 20명
+- 20초 동안 실시
+```
+siege -c20 -t20S -v  --content-type "application/json" 'http://skccuser04-payment:8080/payments POST {"houseId":"1"}'
+```
+
+![image](https://user-images.githubusercontent.com/70302894/96579639-1f46ba00-1312-11eb-8b13-1c552b108711.JPG)
+
+78%정도의 요청 성공률 확인
+
+![image](https://user-images.githubusercontent.com/70302894/96579632-1ce46000-1312-11eb-8c7a-8aff5c351056.JPG)
+
+키알리 화면 캡쳐
+![image](https://user-images.githubusercontent.com/70302894/96579638-1eae2380-1312-11eb-8b9e-c3e21aec7d75.JPG)
+
+예거 화면 캡쳐
+![예거](https://user-images.githubusercontent.com/70302894/96673034-8743e180-13a0-11eb-9617-d9ab5149590f.JPG)
+
+
+
+- 운영시스템은 죽지 않고 지속적으로 CB 에 의하여 적절히 회로가 열림과 닫힘이 벌어지면서 자원을 보호하고 있음을 보여줌. 하지만, 더 과부하를 걸면 반 이상이 실패 Retry 설정과 동적 Scale out (replica의 자동적 추가,HPA) 을 통하여 시스템을 확장 해주는 후속처리가 필요.
+
 
 - Retry 의 설정 (istio)
+
+```
+kubectl apply -f - <<EOF
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: vs-order-network-rule
+  namespace: istio-cb-ns
+spec:
+  hosts:
+  - book
+  http:
+  - route:
+    - destination:
+        host: payment
+    timeout: 3s
+    retries:
+      attempts: 3
+      perTryTimeout: 2s
+      retryOn: 5xx,retriable-4xx,gateway-error,connect-failure,refused-stream
+EOF
+```
+
+
 - Availability 가 높아진 것을 확인 (siege)
+
+
+
+
 
 ### 오토스케일 아웃
 앞서 CB 는 시스템을 안정되게 운영할 수 있게 해줬지만 사용자의 요청을 100% 받아들여주지 못했기 때문에 이에 대한 보완책으로 자동화된 확장 기능을 적용하고자 한다. 
 
 
-- 결제서비스에 대한 replica 를 동적으로 늘려주도록 HPA 를 설정한다. 설정은 CPU 사용량이 15프로를 넘어서면 replica 를 10개까지 늘려준다:
+- 결제서비스에 대한 replica 를 동적으로 늘려주도록 HPA 를 설정한다. 설정은 CPU 사용량이 10프로를 넘어서면 replica 를 10개까지 늘려준다:
 ```
-kubectl autoscale deploy pay --min=1 --max=10 --cpu-percent=15
+kubectl autoscale deploy skccuser04-payment --min=1 --max=10 --cpu-percent=10 -n istio-cb-ns
+
+kubectl autoscale deployment.apps/skccuser04-payment --cpu-percent=10 --min=1 --max=10 -n istio-cb-ns
 ```
-- CB 에서 했던 방식대로 워크로드를 2분 동안 걸어준다.
+
+오토스케일을 위한 metrics-server를 설치하고 배포한다. 적용한 istrio injection을 해제한다.
 ```
-siege -c100 -t120S -r10 --content-type "application/json" 'http://localhost:8081/orders POST {"item": "chicken"}'
+kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.3.6/components.yaml
+
+kubectl get deployment metrics-server -n kube-system
+
+kubectl label namespace istio-cb-ns istio-injection=disabled --overwrite
+
+```
+- CB 에서 했던 방식대로 워크로드를 120초 동안 걸어준다.
+```
+siege -c20 -t120S -v  --content-type "application/json" 'http://skccuser04-payment:8080/payments POST {"id":"1","houseId":"1","bookId":"1","status":"BOOKED"}'
 ```
 - 오토스케일이 어떻게 되고 있는지 모니터링을 걸어둔다:
 ```
-kubectl get deploy pay -w
+watch kubectl get deploy skccuser04-payment -n istio-cb-ns
 ```
 - 어느정도 시간이 흐른 후 (약 30초) 스케일 아웃이 벌어지는 것을 확인할 수 있다:
-```
-NAME    DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
-pay     1         1         1            1           17s
-pay     1         2         1            1           45s
-pay     1         4         1            1           1m
-:
-```
+
+![image](https://user-images.githubusercontent.com/70302894/96588282-6d61ba80-131e-11eb-8f75-90e10ef6f203.JPG)
+
 - siege 의 로그를 보아도 전체적인 성공률이 높아진 것을 확인 할 수 있다. 
-```
-Transactions:		        5078 hits
-Availability:		       92.45 %
-Elapsed time:		       120 secs
-Data transferred:	        0.34 MB
-Response time:		        5.60 secs
-Transaction rate:	       17.15 trans/sec
-Throughput:		        0.01 MB/sec
-Concurrency:		       96.02
-```
+
+![오토스케일링 결과](https://user-images.githubusercontent.com/70302894/96664104-07604c00-138d-11eb-9fed-9c7bd56bf879.JPG)
+
 
 
 ## 무정지 재배포
@@ -687,58 +678,114 @@ Concurrency:		       96.02
 
 - seige 로 배포작업 직전에 워크로드를 모니터링 함.
 ```
-siege -c100 -t120S -r10 --content-type "application/json" 'http://localhost:8081/orders POST {"item": "chicken"}'
-
-** SIEGE 4.0.5
-** Preparing 100 concurrent users for battle.
-The server is now under siege...
-
-HTTP/1.1 201     0.68 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.68 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.70 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.70 secs:     207 bytes ==> POST http://localhost:8081/orders
-:
-
+siege -c20 -t20S -v  --content-type "application/json" 'http://skccuser04-payment:8080/payments POST {"id":"1","houseId":"1","bookId":"1","status":"BOOKED"}'
 ```
 
-- 새버전으로의 배포 시작
-```
-kubectl set image ...
-```
+- 코드빌드에서 재빌드 
+
+![image](https://user-images.githubusercontent.com/70302894/96588975-3dff7d80-131f-11eb-9018-6527b1907591.JPG)
+
+
 
 - seige 의 화면으로 넘어가서 Availability 가 100% 미만으로 떨어졌는지 확인
-```
-Transactions:		        3078 hits
-Availability:		       70.45 %
-Elapsed time:		       120 secs
-Data transferred:	        0.34 MB
-Response time:		        5.60 secs
-Transaction rate:	       17.15 trans/sec
-Throughput:		        0.01 MB/sec
-Concurrency:		       96.02
+
+<img width="594" alt="무정지" src="https://user-images.githubusercontent.com/7261288/96663462-abe18e80-138b-11eb-8a5d-59d11ac07491.png">
+
+배포기간중 Availability 가 평소 100%에서 70% 대로 떨어지는 것을 확인. 원인은 쿠버네티스가 성급하게 새로 올려진 서비스를 READY 상태로 인식하여 서비스 유입을 진행한 것이기 때문. 이를 막기위해 Readiness Probe 와 liveness Prove 설정을 다시 추가:
 
 ```
-배포기간중 Availability 가 평소 100%에서 70% 대로 떨어지는 것을 확인. 원인은 쿠버네티스가 성급하게 새로 올려진 서비스를 READY 상태로 인식하여 서비스 유입을 진행한 것이기 때문. 이를 막기위해 Readiness Probe 를 설정함:
+# deployment.yaml 에 readiness probe / liveness prove  설정:
+      containers:
+        - name: payment
+          image: username/payment:latest
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 10
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 10
+          livenessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 120
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 5
+
 
 ```
-# deployment.yaml 의 readiness probe 의 설정:
+- git commit 이후 자동배포 시 siege 돌리고 Availability 확인:
 
+![image](https://user-images.githubusercontent.com/70302894/96663164-1b0ab300-138b-11eb-9286-94a73c09cff4.JPG)
 
-kubectl apply -f kubernetes/deployment.yaml
-```
-
-- 동일한 시나리오로 재배포 한 후 Availability 확인:
-```
-Transactions:		        3078 hits
-Availability:		       100 %
-Elapsed time:		       120 secs
-Data transferred:	        0.34 MB
-Response time:		        5.60 secs
-Transaction rate:	       17.15 trans/sec
-Throughput:		        0.01 MB/sec
-Concurrency:		       96.02
-
-```
 
 배포기간 동안 Availability 가 변화없기 때문에 무정지 재배포가 성공한 것으로 확인됨.
+
+또한 Liveness Probe가 적용되어있어 kubectl get all -n istio-cb-ns에서 확인 시 자동으로 Restart 됨 (하단이미지 Restart 횟수 확인가능)
+
+![라이브네스 전](https://user-images.githubusercontent.com/70302894/96665219-5c9d5d00-138f-11eb-8c62-ad9ade0bc248.JPG)
+
+
+# configmap
+house 서비스의 경우, 국가와 지역에 따라 설정이 변할 수도 있음을 가정할 수 있다.   
+configmap에 설정된 국가와 지역 설정을 house 서비스에서 받아 사용 할 수 있도록 한다.   
+   
+아래와 같이 configmap을 생성한다.   
+data 필드에 보면 country와 region정보가 설정 되어있다. 
+##### configmap 생성
+```
+kubectl apply -f - <<EOF 
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: house-region
+  namespace: istio-cb-ns
+data:
+  country: "korea"
+  region: "seoul"
+EOF
+```
+ 
+house deployment를 위에서 생성한 house-region(cm)의 값을 사용 할 수 있도록 수정한다.
+###### configmap내용을 deployment에 적용 
+``` yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: house
+  labels:
+    app: house
+...
+    spec:
+      containers:
+        - name: house
+          env:                                                 ##### 컨테이너에서 사용할 환경 변수 설정
+            - name: COUNTRY
+              valueFrom:
+                configMapKeyRef:
+                  name: house-region
+                  key: country
+            - name: REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: house-region
+                  key: region
+          volumeMounts:                                                 ##### CM볼륨을 바인딩
+          - name: config
+            mountPath: "/config"
+            readOnly: true
+...
+      volumes:                                                 ##### CM 볼륨 
+      - name: config
+        configMap:
+          name: house-region
+```
+configmap describe 시 확인 가능
+
+![컨픽맵2](https://user-images.githubusercontent.com/70302894/96668946-37145180-1397-11eb-8465-0a34c4e271f4.JPG)
 
