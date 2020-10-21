@@ -696,7 +696,7 @@ Liveness Probe가 적용되어있어 kubectl get all -n istio-cb-ns에서 확인
 
 
 # configmap
-house 서비스의 경우, 국가와 지역에 따라 설정이 변할 수도 있음을 가정할 수 있다.   
+rentcar 서비스의 경우, 국가와 지역에 따라 설정이 변할 수도 있음을 가정할 수 있다.   
 configmap에 설정된 국가와 지역 설정을 house 서비스에서 받아 사용 할 수 있도록 한다.   
    
 아래와 같이 configmap을 생성한다.   
@@ -707,7 +707,7 @@ kubectl apply -f - <<EOF
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: house-region
+  name: rentcar-region
   namespace: istio-cb-ns
 data:
   country: "korea"
@@ -715,29 +715,29 @@ data:
 EOF
 ```
  
-house deployment를 위에서 생성한 house-region(cm)의 값을 사용 할 수 있도록 수정한다.
+rentcar deployment를 위에서 생성한 rentcar-region(cm)의 값을 사용 할 수 있도록 수정한다.
 ###### configmap내용을 deployment에 적용 
 ``` yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: house
+  name: rentcar
   labels:
-    app: house
+    app: rentcar
 ...
     spec:
       containers:
-        - name: house
+        - name: rentcar
           env:                                                 ##### 컨테이너에서 사용할 환경 변수 설정
             - name: COUNTRY
               valueFrom:
                 configMapKeyRef:
-                  name: house-region
+                  name: rentcar-region
                   key: country
             - name: REGION
               valueFrom:
                 configMapKeyRef:
-                  name: house-region
+                  name: rentcar-region
                   key: region
           volumeMounts:                                                 ##### CM볼륨을 바인딩
           - name: config
@@ -751,5 +751,5 @@ metadata:
 ```
 configmap describe 시 확인 가능
 
-![컨픽맵2](https://user-images.githubusercontent.com/70302894/96668946-37145180-1397-11eb-8465-0a34c4e271f4.JPG)
+![콘피그맵](https://user-images.githubusercontent.com/64885343/96729778-7c18a200-13f0-11eb-89e8-47afbc56a65c.png)
 
