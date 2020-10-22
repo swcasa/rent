@@ -309,8 +309,11 @@ public interface PayRepository extends PagingAndSortingRepository<Pay, Long>{
 
 ![gateway patment](https://user-images.githubusercontent.com/64885343/96825917-3948df80-146d-11eb-8d2a-717ea31fbbe8.png)
 
+3. 결제 취소
 
-3. 차량 보기
+![gateway cancel](https://user-images.githubusercontent.com/64885343/96826183-c724ca80-146d-11eb-8d07-1a87233fa1ea.png)
+
+4. 차량 보기
 
 ![gateway mypage](https://user-images.githubusercontent.com/64885343/96825919-3bab3980-146d-11eb-8b96-d7a3a158cd0d.png)
 
