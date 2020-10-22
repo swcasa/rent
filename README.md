@@ -473,7 +473,7 @@ http http://localhost:8082/payments id=1 status=PAID carId=1 orderId=1          
 #결제상태 확인
 http http://localhost:8082/payments  #제대로 Data 들어옴   
 
-#House 서비스 기동
+#rentcar 서비스 기동
 cd rentcar
 mvn spring-boot:run
 
