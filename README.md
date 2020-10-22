@@ -553,7 +553,7 @@ EOF
 - 동시사용자 20명
 - 20초 동안 실시
 ```
-siege -c3 -t20S -v  --content-type "application/json" 'http://skccuser26-payment:8080/pays POST {"id":"1","carId":"1","orderId":"1","status":"ORDERD","qty":"10"}'
+siege -c20 -t20S -v  --content-type "application/json" 'http://skccuser26-payment:8080/pays POST {"id":"1","carId":"1","orderId":"1","status":"ORDERD","qty":"10"}'
 ```
 
 58%정도의 요청 성공률 확인
