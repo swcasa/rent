@@ -297,19 +297,22 @@ public interface PayRepository extends PagingAndSortingRepository<Pay, Long>{
 ---
 #### 적용 후 REST API 의 테스트
 
-1. 차량 등록
+1. 차량 등록1
 
-![차량 등록 캡쳐](https://user-images.githubusercontent.com/64885343/96722043-e711ab00-13e7-11eb-8b81-7b9871cc0235.png)
+![gateway rentcar1](https://user-images.githubusercontent.com/64885343/96825910-351cc200-146d-11eb-8138-b52d60dd75cd.png)
 
+2. 차량 등록2
 
-2. 차량 예약 
+![gateway rentcar2](https://user-images.githubusercontent.com/64885343/96825913-36e68580-146d-11eb-8c51-1539e887f603.png)
 
-![차량 예약 캡쳐](https://user-images.githubusercontent.com/64885343/96722073-ee38b900-13e7-11eb-9ba4-378785482fe5.png)
+2. 차량 결제 
+
+![gateway patment](https://user-images.githubusercontent.com/64885343/96825917-3948df80-146d-11eb-8d2a-717ea31fbbe8.png)
 
 
 3. 차량 보기
 
-![조회](https://user-images.githubusercontent.com/64885343/96722082-f09b1300-13e7-11eb-861f-bf623eed244f.png)
+![gateway mypage](https://user-images.githubusercontent.com/64885343/96825919-3bab3980-146d-11eb-8b96-d7a3a158cd0d.png)
 
 
 ---
