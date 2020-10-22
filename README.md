@@ -656,7 +656,7 @@ siege -c20 -t20S -v  --content-type "application/json" 'http://skccuser26-paymen
 
 ![무정지 70%](https://user-images.githubusercontent.com/64885343/96728266-e6c8de00-13ee-11eb-8fdc-9ab951f16c15.png)
 
-배포기간중 Availability 가 평소 100%에서 70% 대로 떨어지는 것을 확인. 원인은 쿠버네티스가 성급하게 새로 올려진 서비스를 READY 상태로 인식하여 서비스 유입을 진행한 것이기 때문. 이를 막기위해 Readiness Probe 와 liveness Prove 설정을 다시 추가:
+배포기간중 Availability 가 평소 100%에서 70% 대로 떨어지는 것을 확인. 원인은 쿠버네티스가 성급하게 새로 올려진 서비스를 READY 상태로 인식하여 서비스 유입을 진행한 것이기 때문. 이를 막기위해 Readiness Probe 설정을 다시 추가:
 
 ```
 # deployment.yaml 에 readiness probe / liveness prove  설정:
@@ -673,15 +673,6 @@ siege -c20 -t20S -v  --content-type "application/json" 'http://skccuser26-paymen
             timeoutSeconds: 2
             periodSeconds: 5
             failureThreshold: 10
-          livenessProbe:
-            httpGet:
-              path: '/actuator/health'
-              port: 8080
-            initialDelaySeconds: 120
-            timeoutSeconds: 2
-            periodSeconds: 5
-            failureThreshold: 5
-
 
 ```
 - git commit 이후 자동배포 시 siege 돌리고 Availability 확인:
@@ -692,12 +683,10 @@ siege -c20 -t20S -v  --content-type "application/json" 'http://skccuser26-paymen
 
 배포기간 동안 Availability 가 변화없기 때문에 무정지 재배포가 성공한 것으로 확인됨.
 
-Liveness Probe가 적용되어있어 kubectl get all -n istio-cb-ns에서 확인 시 자동으로 Restart 됨 
-
 
 # configmap
 rentcar 서비스의 경우, 국가와 지역에 따라 설정이 변할 수도 있음을 가정할 수 있다.   
-configmap에 설정된 국가와 지역 설정을 house 서비스에서 받아 사용 할 수 있도록 한다.   
+configmap에 설정된 국가와 지역 설정을 rentcar 서비스에서 받아 사용 할 수 있도록 한다.   
    
 아래와 같이 configmap을 생성한다.   
 data 필드에 보면 country와 region정보가 설정 되어있다. 
