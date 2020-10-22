@@ -393,7 +393,7 @@ Feign 방식은 넷플릭스에서 만든 Http Client로 Http call을 할 때, �
         pay.setOrderId(ordered.getId());
         pay.setQty(ordered.getQty());
         pay.setCarId(ordered.getCarId());
-        System.out.println("##### 오더아이디 어디감 : " + ordered.getId());
+        
         pay.setStauts("APPROVED");
 
         // mappings goes here
